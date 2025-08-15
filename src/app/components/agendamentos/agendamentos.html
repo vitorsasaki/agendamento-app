@@ -1,0 +1,625 @@
+<div class="agendamentos-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Gerenciar Agendamentos</h1>
+      <p>Gerencie os agendamentos médicos do sistema</p>
+    </div>
+    <div class="header-right">
+      <button class="btn-primary" (click)="novoAgendamento()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14"/>
+          <path d="M5 12h14"/>
+        </svg>
+        Novo Agendamento
+      </button>
+    </div>
+  </div>
+
+  <!-- Campo de busca -->
+  <div class="search-container">
+    <div class="search-input-wrapper">
+      <div class="search-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="M21 21l-4.35-4.35"></path>
+        </svg>
+      </div>
+      <input 
+        type="text" 
+        class="search-input"
+        [(ngModel)]="searchTerm"
+        (input)="onSearchInput($event)"
+        placeholder="Buscar agendamentos por paciente..."
+        [disabled]="isLoading">
+      <div class="search-loading" *ngIf="isSearching">
+        <div class="spinner-small"></div>
+      </div>
+      <button 
+        class="search-clear" 
+        *ngIf="searchTerm.length > 0" 
+        (click)="limparBusca()"
+        title="Limpar busca">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <div class="search-hint" *ngIf="searchTerm.length > 0 && searchTerm.length < 2">
+      Digite pelo menos 2 caracteres para buscar
+    </div>
+  </div>
+
+  <!-- Sistema de Abas -->
+  <div class="tabs-container">
+    <div class="tabs-nav">
+      <button 
+        class="tab-button" 
+        [class.active]="activeTab === 'lista'"
+        (click)="setActiveTab('lista')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="8" y1="6" x2="21" y2="6"></line>
+          <line x1="8" y1="12" x2="21" y2="12"></line>
+          <line x1="8" y1="18" x2="21" y2="18"></line>
+          <line x1="3" y1="6" x2="3.01" y2="6"></line>
+          <line x1="3" y1="12" x2="3.01" y2="12"></line>
+          <line x1="3" y1="18" x2="3.01" y2="18"></line>
+        </svg>
+        Lista
+      </button>
+      <button 
+        class="tab-button" 
+        [class.active]="activeTab === 'calendario'"
+        (click)="setActiveTab('calendario')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+        Calendário
+      </button>
+    </div>
+  </div>
+
+  <!-- Mensagem de erro -->
+  <div class="error-message" *ngIf="erro && !mostrarModal">
+    {{ erro }}
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" *ngIf="isLoading && !mostrarModal">
+    <div class="spinner"></div>
+    <p>Carregando...</p>
+  </div>
+
+  <!-- Aba Lista -->
+  <div class="tab-content" *ngIf="activeTab === 'lista'">
+    <!-- Tabela de agendamentos -->
+    <div class="table-container" *ngIf="!isLoading">
+    <div class="table-header">
+      <div class="header-cell">Data/Hora</div>
+      <div class="header-cell">Paciente</div>
+      <div class="header-cell">Profissional</div>
+      <div class="header-cell">Status</div>
+     <div class="header-cell">Observação</div>
+      <div class="header-cell">Ações</div>
+    </div>
+
+    <div class="table-body">
+      <div class="table-row" *ngFor="let agendamento of agendamentos">
+        <div class="table-cell">
+          <div class="datetime-info">
+            <div class="datetime-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </div>
+            <span class="datetime-text">{{ formatarDataHora(agendamento.dataHora) }}</span>
+          </div>
+        </div>
+        <div class="table-cell">
+          <div class="patient-info">
+            <div class="patient-avatar">
+              {{ agendamento.nomePaciente ? agendamento.nomePaciente.charAt(0).toUpperCase() : '?' }}
+            </div>
+            <span class="patient-name">{{ agendamento.nomePaciente || 'Paciente não informado' }}</span>
+          </div>
+        </div>
+        <div class="table-cell">
+          <div class="professional-info">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span>{{ agendamento.nomeProfissional || 'Profissional não informado' }}</span>
+          </div>
+        </div>
+        <div class="table-cell">
+          <span class="status-badge" [style.background-color]="getStatusColor(agendamento.status)">
+            {{ getStatusLabel(agendamento.status) }}
+          </span>
+        </div>
+        <div class="table-cell">
+          <span class="observacao-text" [title]="agendamento.observacao">
+            {{ agendamento.observacao ? (agendamento.observacao.length > 50 ? agendamento.observacao.substring(0, 50) + '...' : agendamento.observacao) : 'Sem observações' }}
+          </span>
+        </div>
+        <div class="table-cell">
+          <div class="action-buttons">
+            <button class="btn-edit" (click)="editarAgendamento(agendamento)" title="Editar">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
+            <button class="btn-delete" (click)="excluirAgendamento(agendamento.id!)" title="Excluir">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3,6 5,6 21,6"/>
+                <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2,2h4a2,2,0,0,1,2,2V6"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mensagem quando não há agendamentos -->
+      <div class="empty-state" *ngIf="agendamentos.length === 0 && !isLoading && !isSearching">
+        <div *ngIf="searchTerm.length > 0; else noAppointments">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="M21 21l-4.35-4.35"></path>
+          </svg>
+          <h3>Nenhum agendamento encontrado</h3>
+          <p>Não encontramos agendamentos para o paciente "{{ searchTerm }}"</p>
+          <button class="btn-secondary" (click)="limparBusca()">
+            Limpar busca
+          </button>
+        </div>
+        <ng-template #noAppointments>
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <h3>Nenhum agendamento cadastrado</h3>
+          <p>Comece criando um novo agendamento no sistema</p>
+          <button class="btn-primary" (click)="novoAgendamento()">
+            Criar Primeiro Agendamento
+          </button>
+        </ng-template>
+      </div>
+    </div>
+
+    <!-- Controles de Paginação -->
+    <div class="pagination-container" *ngIf="totalPages > 1 && activeTab === 'lista'">
+      <!-- Informações da página atual -->
+      <div class="pagination-info">
+        <span>Mostrando {{ (currentPage * pageSize) + 1 }} - {{ getEndIndex() }} de {{ totalElements }} agendamentos</span>
+        
+        <!-- Seletor de itens por página -->
+        <div class="page-size-selector">
+          <label for="pageSize">Itens por página:</label>
+          <select id="pageSize" [value]="pageSize" (change)="onPageSizeChange($event)">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Controles de navegação -->
+      <div class="pagination-controls">
+        <!-- Primeira página -->
+        <button 
+          class="pagination-btn" 
+          [disabled]="currentPage === 0"
+          (click)="firstPage()"
+          title="Primeira página">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="11,17 6,12 11,7"></polyline>
+            <polyline points="18,17 13,12 18,7"></polyline>
+          </svg>
+        </button>
+
+        <!-- Página anterior -->
+        <button 
+          class="pagination-btn" 
+          [disabled]="currentPage === 0"
+          (click)="previousPage()"
+          title="Página anterior">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15,18 9,12 15,6"></polyline>
+          </svg>
+        </button>
+
+        <!-- Números das páginas -->
+        <button 
+          *ngFor="let pageNum of pageNumbers"
+          class="pagination-btn page-number"
+          [class.active]="pageNum === currentPage"
+          (click)="goToPage(pageNum)">
+          {{ pageNum + 1 }}
+        </button>
+
+        <!-- Próxima página -->
+        <button 
+          class="pagination-btn" 
+          [disabled]="currentPage === totalPages - 1"
+          (click)="nextPage()"
+          title="Próxima página">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9,18 15,12 9,6"></polyline>
+          </svg>
+        </button>
+
+        <!-- Última página -->
+        <button 
+          class="pagination-btn" 
+          [disabled]="currentPage === totalPages - 1"
+          (click)="lastPage()"
+          title="Última página">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="13,17 18,12 13,7"></polyline>
+            <polyline points="6,17 11,12 6,7"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- Aba Calendário -->
+  <div class="tab-content" *ngIf="activeTab === 'calendario'">
+    <div class="calendar-container" *ngIf="!isLoading">
+      <!-- Header do calendário -->
+      <div class="calendar-header">
+        <div class="calendar-nav">
+          <button class="calendar-nav-btn" (click)="previousPeriod()" [title]="calendarView === 'week' ? 'Semana anterior' : 'Mês anterior'">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15,18 9,12 15,6"></polyline>
+            </svg>
+          </button>
+          
+          <h2 class="calendar-title">{{ getCurrentPeriodTitle() }}</h2>
+          
+          <button class="calendar-nav-btn" (click)="nextPeriod()" [title]="calendarView === 'week' ? 'Próxima semana' : 'Próximo mês'">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9,18 15,12 9,6"></polyline>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="calendar-controls">
+          <div class="view-buttons">
+            <button 
+              class="view-btn" 
+              [class.active]="calendarView === 'month'"
+              (click)="setCalendarView('month')">
+              Mês
+            </button>
+            <button 
+              class="view-btn" 
+              [class.active]="calendarView === 'week'"
+              (click)="setCalendarView('week')">
+              Semana
+            </button>
+          </div>
+          <button class="btn-today" (click)="goToToday()">Hoje</button>
+        </div>
+      </div>
+
+      <!-- Visualização Mensal -->
+      <div *ngIf="calendarView === 'month'" class="month-view">
+        <!-- Cabeçalho dos dias da semana -->
+        <div class="calendar-weekdays">
+          <div class="weekday" *ngFor="let day of dayNames">{{ day }}</div>
+        </div>
+
+        <!-- Grid do calendário -->
+        <div class="calendar-grid">
+          <div 
+            class="calendar-day" 
+            *ngFor="let dayInfo of calendarDays"
+            [class.other-month]="!dayInfo.isCurrentMonth"
+            [class.today]="dayInfo.isToday"
+            [class.has-appointments]="dayInfo.agendamentos.length > 0"
+            (click)="onDayClick(dayInfo)"
+            [title]="dayInfo.agendamentos.length > 0 ? dayInfo.agendamentos.length + ' agendamento(s)' : 'Clique para criar agendamento'">
+            
+            <div class="day-number">{{ dayInfo.day }}</div>
+            
+            <div class="day-appointments" *ngIf="dayInfo.agendamentos.length > 0">
+              <div 
+                class="appointment-item" 
+                *ngFor="let agendamento of dayInfo.agendamentos.slice(0, 3)"
+                [style.background-color]="getStatusColor(agendamento.status)"
+                [title]="formatarDataHora(agendamento.dataHora) + ' - ' + agendamento.nomePaciente">
+                <span class="appointment-time">{{ formatarDataHora(agendamento.dataHora).split(' ')[1] }}</span>
+                <span class="appointment-patient">{{ agendamento.nomePaciente }}</span>
+              </div>
+              
+              <div class="more-appointments" *ngIf="dayInfo.agendamentos.length > 3">
+                +{{ dayInfo.agendamentos.length - 3 }} mais
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Visualização Semanal -->
+      <div *ngIf="calendarView === 'week'" class="week-view">
+        <!-- Grid da semana -->
+        <div class="week-grid">
+          <!-- Coluna de horários -->
+          <div class="time-column">
+            <div class="time-header"></div>
+            <div class="time-slot" *ngFor="let timeSlot of timeSlots">
+              {{ timeSlot }}
+            </div>
+          </div>
+
+          <!-- Colunas dos dias -->
+          <div class="day-column" *ngFor="let dayInfo of weekDays">
+            <!-- Cabeçalho do dia -->
+            <div class="day-header" [class.today]="dayInfo.isToday">
+              <div class="day-name">{{ dayInfo.dayNameShort }}</div>
+              <div class="day-number" [class.today-number]="dayInfo.isToday">{{ dayInfo.day }}</div>
+            </div>
+
+            <!-- Slots de horário do dia -->
+            <div class="day-time-slots">
+              <div 
+                class="time-slot-cell" 
+                *ngFor="let timeSlot of dayInfo.timeSlots"
+                [class.occupied]="!timeSlot.isAvailable"
+                [class.available]="timeSlot.isAvailable"
+                (click)="onTimeSlotClick(dayInfo, timeSlot)"
+                [title]="timeSlot.agendamento ? timeSlot.agendamento.nomePaciente + ' - ' + timeSlot.agendamento.nomeProfissional : 'Clique para agendar'">
+                
+                <div *ngIf="timeSlot.agendamento" class="appointment-slot" [style.background-color]="getStatusColor(timeSlot.agendamento.status)">
+                  <div class="appointment-patient-name">{{ timeSlot.agendamento.nomePaciente }}</div>
+                  <div class="appointment-professional">{{ timeSlot.agendamento.nomeProfissional }}</div>
+                  <div class="appointment-status">{{ getStatusLabel(timeSlot.agendamento.status) }}</div>
+                </div>
+                
+                <div *ngIf="!timeSlot.agendamento" class="empty-slot">
+                  <span class="add-icon">+</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" *ngIf="mostrarModal" (click)="fecharModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ agendamentoSelecionado ? 'Editar Agendamento' : 'Novo Agendamento' }}</h2>
+      <button class="modal-close" (click)="fecharModal()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Mensagem de erro no modal -->
+      <div class="error-message" *ngIf="erro">
+        {{ erro }}
+      </div>
+
+      <form class="agendamento-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="dataHora">Data e Hora *</label>
+            <div class="input-container">
+              <div class="input-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </div>
+              <input 
+                type="datetime-local" 
+                id="dataHora" 
+                [(ngModel)]="formData.dataHora"
+                name="dataHora"
+                required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="status">Status *</label>
+            <div class="select-container">
+              <select 
+                id="status" 
+                [(ngModel)]="formData.status"
+                name="status"
+                required>
+                <option *ngFor="let status of statusOptions" [value]="status.value">
+                  {{ status.label }}
+                </option>
+              </select>
+              <div class="select-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6,9 12,15 18,9"></polyline>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="nomePaciente">Nome do Paciente *</label>
+            <div class="patient-search-container">
+              <div class="input-container">
+                <div class="input-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </div>
+                <input 
+                  type="text" 
+                  id="nomePaciente" 
+                  [(ngModel)]="pacienteSearchTerm"
+                  (input)="onPacienteSearchInput($event)"
+                  (keyup)="onPacienteSearchInput($event)"
+                  (ngModelChange)="onPacienteSearchChange($event)"
+                  name="nomePaciente"
+                  placeholder="Digite pelo menos 3 letras para buscar paciente"
+                  autocomplete="off"
+                  required>
+                <div class="search-loading" *ngIf="isSearchingPacientes">
+                  <div class="spinner-small"></div>
+                </div>
+                <button 
+                  type="button"
+                  class="clear-patient" 
+                  *ngIf="pacienteSelecionado" 
+                  (click)="limparPaciente()"
+                  title="Limpar seleção">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+              
+              <!-- Lista de pacientes encontrados -->
+              <div class="patient-dropdown" *ngIf="mostrarListaPacientes && pacientes.length > 0">
+                <div class="patient-item" 
+                     *ngFor="let paciente of pacientes" 
+                     (click)="selecionarPaciente(paciente)">
+                  <div class="patient-info">
+                    <div class="patient-name">{{ paciente.nome }}</div>
+                    <div class="patient-details">{{ paciente.cpf }} • {{ paciente.telefone }}</div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Hint para digitar mais caracteres -->
+              <div class="search-hint" *ngIf="pacienteSearchTerm.length > 0 && pacienteSearchTerm.length < 3 && !pacienteSelecionado">
+                Digite pelo menos 3 caracteres para buscar
+              </div>
+              
+              <!-- Mensagem quando nenhum paciente é encontrado -->
+              <div class="no-results" *ngIf="pacienteSearchTerm.length >= 3 && pacientes.length === 0 && !isSearchingPacientes && !pacienteSelecionado">
+                Nenhum paciente encontrado
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="nomeProfissional">Nome do Profissional *</label>
+            <div class="professional-search-container">
+              <div class="input-container">
+                <div class="input-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
+                </div>
+                <input 
+                  type="text" 
+                  id="nomeProfissional" 
+                  [(ngModel)]="profissionalSearchTerm"
+                  (input)="onProfissionalSearchInput($event)"
+                  (keyup)="onProfissionalSearchInput($event)"
+                  (ngModelChange)="onProfissionalSearchChange($event)"
+                  name="nomeProfissional"
+                  placeholder="Digite pelo menos 3 letras para buscar profissional"
+                  autocomplete="off"
+                  required>
+                <div class="search-loading" *ngIf="isSearchingProfissionais">
+                  <div class="spinner-small"></div>
+                </div>
+                <button 
+                  type="button"
+                  class="clear-professional" 
+                  *ngIf="profissionalSelecionado" 
+                  (click)="limparProfissional()"
+                  title="Limpar seleção">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+              
+              <!-- Lista de profissionais encontrados -->
+              <div class="professional-dropdown" *ngIf="mostrarListaProfissionais && profissionais.length > 0">
+                <div class="professional-item" 
+                     *ngFor="let profissional of profissionais" 
+                     (click)="selecionarProfissional(profissional)">
+                  <div class="professional-info">
+                    <div class="professional-name">{{ profissional.nomeProfissional }}</div>
+                    <div class="professional-details">{{ profissional.crm }} • {{ profissional.especialidade || 'Especialidade não informada' }}</div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Hint para digitar mais caracteres -->
+              <div class="search-hint" *ngIf="profissionalSearchTerm.length > 0 && profissionalSearchTerm.length < 3 && !profissionalSelecionado">
+                Digite pelo menos 3 caracteres para buscar
+              </div>
+              
+              <!-- Mensagem quando nenhum profissional é encontrado -->
+              <div class="no-results" *ngIf="profissionalSearchTerm.length >= 3 && profissionais.length === 0 && !isSearchingProfissionais && !profissionalSelecionado">
+                Nenhum profissional encontrado
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="observacao">Observações</label>
+            <div class="input-container">
+              <div class="input-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14,2 14,8 20,8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10,9 9,9 8,9"></polyline>
+                </svg>
+              </div>
+              <input 
+                type="text" 
+                id="observacao" 
+                [(ngModel)]="formData.observacao"
+                name="observacao"
+                placeholder="Observações sobre o agendamento (opcional)">
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="fecharModal()" [disabled]="isLoading">
+        Cancelar
+      </button>
+      <button class="btn-primary" (click)="salvarAgendamento()" [disabled]="isLoading">
+        <div class="spinner" *ngIf="isLoading"></div>
+        {{ agendamentoSelecionado ? 'Atualizar' : 'Criar' }}
+      </button>
+    </div>
+  </div>
+</div>

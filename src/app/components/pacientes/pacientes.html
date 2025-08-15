@@ -1,0 +1,338 @@
+<div class="pacientes-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Gerenciar Pacientes</h1>
+      <p>Cadastre e gerencie os pacientes do sistema</p>
+    </div>
+    <div class="header-right">
+      <button class="btn-primary" (click)="novoPaciente()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14"/>
+          <path d="M5 12h14"/>
+        </svg>
+        Novo Paciente
+      </button>
+    </div>
+  </div>
+
+  <!-- Campo de busca -->
+  <div class="search-container">
+    <div class="search-input-wrapper">
+      <div class="search-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="M21 21l-4.35-4.35"></path>
+        </svg>
+      </div>
+      <input 
+        type="text" 
+        class="search-input"
+        [(ngModel)]="searchTerm"
+        (input)="onSearchInput($event)"
+        placeholder="Buscar pacientes por nome..."
+        [disabled]="isLoading">
+      <div class="search-loading" *ngIf="isSearching">
+        <div class="spinner-small"></div>
+      </div>
+      <button 
+        class="search-clear" 
+        *ngIf="searchTerm.length > 0" 
+        (click)="limparBusca()"
+        title="Limpar busca">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <div class="search-hint" *ngIf="searchTerm.length > 0 && searchTerm.length < 2">
+      Digite pelo menos 2 caracteres para buscar
+    </div>
+  </div>
+
+  <!-- Mensagem de erro -->
+  <div class="error-message" *ngIf="erro && !mostrarModal">
+    {{ erro }}
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" *ngIf="isLoading && !mostrarModal">
+    <div class="spinner"></div>
+    <p>Carregando...</p>
+  </div>
+
+  <!-- Tabela de pacientes -->
+  <div class="table-container" *ngIf="!isLoading">
+    <div class="table-header">
+      <div class="header-cell">Nome</div>
+      <div class="header-cell">CPF</div>
+      <div class="header-cell">E-mail</div>
+      <div class="header-cell">Telefone</div>
+      <div class="header-cell">Ações</div>
+    </div>
+
+    <div class="table-body">
+      <div class="table-row" *ngFor="let paciente of pacientes">
+        <div class="table-cell">
+          <div class="paciente-info">
+            <div class="paciente-avatar">
+              {{ paciente.nome ? paciente.nome.charAt(0).toUpperCase() : '?' }}
+            </div>
+            <span class="paciente-nome">{{ paciente.nome || 'Nome não informado' }}</span>
+          </div>
+        </div>
+        <div class="table-cell">{{ formatarCPF(paciente.cpf) || 'Não informado' }}</div>
+        <div class="table-cell">{{ paciente.email || 'Não informado' }}</div>
+        <div class="table-cell">{{ formatarTelefone(paciente.telefone) || 'Não informado' }}</div>
+        <div class="table-cell">
+          <div class="action-buttons">
+            <button class="btn-edit" (click)="editarPaciente(paciente)" title="Editar">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
+            <button class="btn-delete" (click)="excluirPaciente(paciente.id!)" title="Excluir">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3,6 5,6 21,6"/>
+                <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2,2h4a2,2,0,0,1,2,2V6"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mensagem quando não há pacientes -->
+      <div class="empty-state" *ngIf="pacientes.length === 0 && !isLoading && !isSearching">
+        <div *ngIf="searchTerm.length > 0; else noPatients">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="M21 21l-4.35-4.35"></path>
+          </svg>
+          <h3>Nenhum paciente encontrado</h3>
+          <p>Não encontramos pacientes com o nome "{{ searchTerm }}"</p>
+          <button class="btn-secondary" (click)="limparBusca()">
+            Limpar busca
+          </button>
+        </div>
+        <ng-template #noPatients>
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          <h3>Nenhum paciente cadastrado</h3>
+          <p>Comece adicionando um novo paciente ao sistema</p>
+          <button class="btn-primary" (click)="novoPaciente()">
+            Adicionar Primeiro Paciente
+          </button>
+        </ng-template>
+      </div>
+    </div>
+
+    <!-- Controles de Paginação -->
+    <div class="pagination-container" *ngIf="totalPages > 1">
+      <!-- Informações da página atual -->
+      <div class="pagination-info">
+        <span>Mostrando {{ (currentPage * pageSize) + 1 }} - {{ getEndIndex() }} de {{ totalElements }} pacientes</span>
+        
+        <!-- Seletor de itens por página -->
+        <div class="page-size-selector">
+          <label for="pageSize">Itens por página:</label>
+          <select id="pageSize" [value]="pageSize" (change)="onPageSizeChange($event)">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Controles de navegação -->
+      <div class="pagination-controls">
+        <!-- Primeira página -->
+        <button 
+          class="pagination-btn" 
+          [disabled]="currentPage === 0"
+          (click)="firstPage()"
+          title="Primeira página">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="11,17 6,12 11,7"></polyline>
+            <polyline points="18,17 13,12 18,7"></polyline>
+          </svg>
+        </button>
+
+        <!-- Página anterior -->
+        <button 
+          class="pagination-btn" 
+          [disabled]="currentPage === 0"
+          (click)="previousPage()"
+          title="Página anterior">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15,18 9,12 15,6"></polyline>
+          </svg>
+        </button>
+
+        <!-- Números das páginas -->
+        <button 
+          *ngFor="let pageNum of pageNumbers"
+          class="pagination-btn page-number"
+          [class.active]="pageNum === currentPage"
+          (click)="goToPage(pageNum)">
+          {{ pageNum + 1 }}
+        </button>
+
+        <!-- Próxima página -->
+        <button 
+          class="pagination-btn" 
+          [disabled]="currentPage === totalPages - 1"
+          (click)="nextPage()"
+          title="Próxima página">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9,18 15,12 9,6"></polyline>
+          </svg>
+        </button>
+
+        <!-- Última página -->
+        <button 
+          class="pagination-btn" 
+          [disabled]="currentPage === totalPages - 1"
+          (click)="lastPage()"
+          title="Última página">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="13,17 18,12 13,7"></polyline>
+            <polyline points="6,17 11,12 6,7"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" *ngIf="mostrarModal" (click)="fecharModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ pacienteSelecionado ? 'Editar Paciente' : 'Novo Paciente' }}</h2>
+      <button class="modal-close" (click)="fecharModal()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Mensagem de erro no modal -->
+      <div class="error-message" *ngIf="erro">
+        {{ erro }}
+      </div>
+
+      <form class="paciente-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="nome">Nome Completo *</label>
+            <div class="input-container">
+              <div class="input-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </div>
+              <input 
+                type="text" 
+                id="nome" 
+                [(ngModel)]="formData.nome"
+                name="nome"
+                placeholder="Digite o nome completo do paciente"
+                required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="cpf">CPF *</label>
+            <div class="input-container">
+              <div class="input-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14,2 14,8 20,8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10,9 9,9 8,9"></polyline>
+                </svg>
+              </div>
+              <input 
+                type="text" 
+                id="cpf" 
+                [(ngModel)]="formData.cpf"
+                (input)="onCPFInput($event)"
+                name="cpf"
+                placeholder="000.000.000-00"
+                maxlength="14"
+                [disabled]="pacienteSelecionado != null"
+                [title]="pacienteSelecionado ? 'CPF não pode ser alterado' : ''"
+                required>
+            </div>
+            <small class="form-hint" *ngIf="pacienteSelecionado">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              CPF não pode ser alterado após o cadastro
+            </small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="email">E-mail *</label>
+            <div class="input-container">
+              <div class="input-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+              </div>
+              <input 
+                type="email" 
+                id="email" 
+                [(ngModel)]="formData.email"
+                name="email"
+                placeholder="exemplo@email.com"
+                required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="telefone">Telefone *</label>
+            <div class="input-container">
+              <div class="input-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                </svg>
+              </div>
+              <input 
+                type="tel" 
+                id="telefone" 
+                [(ngModel)]="formData.telefone"
+                (input)="onTelefoneInput($event)"
+                name="telefone"
+                placeholder="(00)00000-0000"
+                maxlength="14"
+                required>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="fecharModal()" [disabled]="isLoading">
+        Cancelar
+      </button>
+      <button class="btn-primary" (click)="salvarPaciente()" [disabled]="isLoading">
+        <div class="spinner" *ngIf="isLoading"></div>
+        {{ pacienteSelecionado ? 'Atualizar' : 'Criar' }}
+      </button>
+    </div>
+  </div>
+</div>

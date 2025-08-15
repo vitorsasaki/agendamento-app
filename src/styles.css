@@ -1,0 +1,11 @@
+/* You can add global styles to this file, and also import other style files */
+
+/* Estilos globais para o fundo da aplicação */
+body {
+  margin: 0;
+  padding: 0;
+  background: url('/assets/images/doctor-calendar-bg.jpg') center/cover no-repeat;
+  background-attachment: fixed;
+  min-height: 100vh;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
