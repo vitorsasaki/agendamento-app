@@ -5,7 +5,7 @@
       <h1>Gerenciar Agendamentos</h1>
       <p>Gerencie os agendamentos médicos do sistema</p>
     </div>
-    <div class="header-right">
+     <!-- <div class="header-right">
       <button class="btn-primary" (click)="novoAgendamento()">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 5v14"/>
@@ -13,7 +13,7 @@
         </svg>
         Novo Agendamento
       </button>
-    </div>
+    </div> -->
   </div>
 
   <!-- Campo de busca -->
@@ -311,8 +311,25 @@
               Semana
             </button>
           </div>
+          
+          <!-- Seletor de intervalo - só aparece na visualização semanal -->
+          <div class="time-interval-selector" *ngIf="calendarView === 'week'">
+            <label for="timeInterval">Intervalo:</label>
+            <select id="timeInterval" [value]="timeInterval" (change)="onTimeIntervalChange($event)">
+              <option value="15">15 min</option>
+              <option value="30">30 min</option>
+              <option value="45">45 min</option>
+              <option value="60">1 hora</option>
+            </select>
+          </div>
+          
           <button class="btn-today" (click)="goToToday()">Hoje</button>
         </div>
+      </div>
+
+      <!-- Mensagem de feedback -->
+      <div class="feedback-message" *ngIf="feedbackMessage">
+        {{ feedbackMessage }}
       </div>
 
       <!-- Visualização Mensal -->

@@ -67,6 +67,13 @@ export class AgendamentosComponent implements OnInit {
   pageSize = 5;
   pageNumbers: number[] = [];
   
+  // Controle de intervalo de tempo para visualização semanal
+  timeInterval = 60; // Intervalo em minutos (padrão: 1h)
+  
+  // Mensagem de feedback temporária
+  feedbackMessage = '';
+  feedbackTimeout: any;
+  
   // Busca de pacientes
   pacientes: Paciente[] = [];
   pacienteSelecionado: Paciente | null = null;
@@ -274,6 +281,43 @@ export class AgendamentosComponent implements OnInit {
     return Math.min((this.currentPage + 1) * this.pageSize, this.totalElements);
   }
 
+  // Alterar intervalo de tempo da visualização semanal
+  changeTimeInterval(newInterval: number): void {
+    this.timeInterval = newInterval;
+    this.generateTimeSlots(); // Regenerar slots com novo intervalo
+    this.generateWeekView(); // Regenerar visualização semanal
+  }
+
+  // Manipular mudança do seletor de intervalo
+  onTimeIntervalChange(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    if (target) {
+      this.changeTimeInterval(Number(target.value));
+    }
+  }
+
+  // Verificar se já existe agendamento em um horário específico
+  hasAgendamentoAtDateTime(date: Date): boolean {
+    return this.todosAgendamentos.some(agendamento => {
+      if (!agendamento.dataHora) return false;
+      const agendamentoDate = new Date(agendamento.dataHora);
+      return agendamentoDate.getTime() === date.getTime();
+    });
+  }
+
+  // Mostrar mensagem de feedback temporária
+  showFeedback(message: string, duration: number = 3000): void {
+    this.feedbackMessage = message;
+    
+    if (this.feedbackTimeout) {
+      clearTimeout(this.feedbackTimeout);
+    }
+    
+    this.feedbackTimeout = setTimeout(() => {
+      this.feedbackMessage = '';
+    }, duration);
+  }
+
   // Buscar agendamentos por paciente
   async buscarAgendamentos(termo: string): Promise<void> {
     this.isSearching = true;
@@ -287,7 +331,7 @@ export class AgendamentosComponent implements OnInit {
       });
 
       const response = await this.http.get<PageResponse<Agendamento>>(
-        `http://localhost:8080/api/agendamentos/search?paciente=${encodeURIComponent(termo)}`,
+        `http://localhost:8080/api/agendamentos/buscarPorNome?nome=${encodeURIComponent(termo)}`,
         { headers }
       ).toPromise();
 
@@ -531,12 +575,49 @@ export class AgendamentosComponent implements OnInit {
 
   // Abrir modal para editar agendamento
   editarAgendamento(agendamento: Agendamento): void {
+    console.log('=== DEBUG editarAgendamento ===');
+    console.log('Agendamento recebido:', agendamento);
+    
     this.agendamentoSelecionado = agendamento;
     this.formData = { ...agendamento };
+    
+    console.log('formData após cópia:', this.formData);
+    
     // Formatar data para input datetime-local
     if (this.formData.dataHora) {
+      const dataOriginal = this.formData.dataHora;
       this.formData.dataHora = this.formatarDataParaInput(this.formData.dataHora);
+      console.log('Data formatada:', dataOriginal, '→', this.formData.dataHora);
     }
+    
+    console.log('formData final:', this.formData);
+    console.log('agendamentoSelecionado:', this.agendamentoSelecionado);
+    
+    // Preencher campos de busca com os dados do agendamento
+    if (agendamento.nomePaciente) {
+      this.pacienteSearchTerm = agendamento.nomePaciente;
+      this.pacienteSelecionado = {
+        id: agendamento.idPaciente,
+        nome: agendamento.nomePaciente,
+        cpf: '', // Não temos CPF nos dados do agendamento
+        email: '', // Não temos email nos dados do agendamento
+        telefone: '' // Não temos telefone nos dados do agendamento
+      };
+      console.log('Paciente preenchido:', this.pacienteSelecionado);
+    }
+    
+    if (agendamento.nomeProfissional) {
+      this.profissionalSearchTerm = agendamento.nomeProfissional;
+      this.profissionalSelecionado = {
+        id: agendamento.idProfissional,
+        nomeProfissional: agendamento.nomeProfissional,
+        crm: '', // Não temos CRM nos dados do agendamento
+        idEspecialidade: 0, // Valor padrão pois não temos nos dados do agendamento
+        especialidade: '' // Não temos especialidade nos dados do agendamento
+      };
+      console.log('Profissional preenchido:', this.profissionalSelecionado);
+    }
+    
     this.mostrarModal = true;
   }
 
@@ -567,10 +648,15 @@ export class AgendamentosComponent implements OnInit {
       });
 
       // Formatar data para o backend
+      const dataHoraFormatada = this.formatarDataParaBackend(this.formData.dataHora);
+      console.log('DEBUG - Formatação de data/hora:');
+      console.log('- Input original:', this.formData.dataHora);
+      console.log('- Data formatada para backend:', dataHoraFormatada);
+      
       const dadosParaEnvio = {
         ...this.formData,
-        dataHora: this.formatarDataParaBackend(this.formData.dataHora)
-      };            
+        dataHora: dataHoraFormatada
+      };
 
       if (this.agendamentoSelecionado?.id) {
         // Atualizar
@@ -725,12 +811,22 @@ export class AgendamentosComponent implements OnInit {
     }
   }
 
-  // Formatar data para envio ao backend
+  // Formatar data para envio ao backend (mantendo fuso horário local)
   formatarDataParaBackend(dataHora: string): string {
     if (!dataHora) return '';
     try {
       const data = new Date(dataHora);
-      return data.toISOString();
+      
+      // Obter componentes da data no fuso local
+      const ano = data.getFullYear();
+      const mes = String(data.getMonth() + 1).padStart(2, '0');
+      const dia = String(data.getDate()).padStart(2, '0');
+      const horas = String(data.getHours()).padStart(2, '0');
+      const minutos = String(data.getMinutes()).padStart(2, '0');
+      const segundos = String(data.getSeconds()).padStart(2, '0');
+      
+      // Formato ISO local: YYYY-MM-DDTHH:mm:ss
+      return `${ano}-${mes}-${dia}T${horas}:${minutos}:${segundos}`;
     } catch {
       return '';
     }
@@ -838,9 +934,11 @@ export class AgendamentosComponent implements OnInit {
   // Clique em um dia do calendário
   onDayClick(dayInfo: any): void {
     if (dayInfo.agendamentos.length > 0) {
-      // Se há agendamentos, pode mostrar detalhes ou abrir modal      
+      // Se há agendamentos, mostrar mensagem ou permitir visualizar detalhes
+      console.log('Já existem agendamentos neste dia:', dayInfo.agendamentos.length);
+      // Pode implementar modal de visualização dos agendamentos do dia
     } else if (dayInfo.isCurrentMonth) {
-      // Se não há agendamentos e é do mês atual, pode criar novo agendamento
+      // Se não há agendamentos e é do mês atual, criar novo agendamento
       this.novoAgendamentoParaData(dayInfo.date);
     }
   }
@@ -868,11 +966,25 @@ export class AgendamentosComponent implements OnInit {
     this.generateCalendar();
   }
 
-  // Gerar slots de horário (7h às 19h)
+  // Gerar slots de horário dinâmicos (7h às 19h)
   generateTimeSlots(): void {
     this.timeSlots = [];
-    for (let hour = 7; hour <= 19; hour++) {
-      this.timeSlots.push(`${hour.toString().padStart(2, '0')}:00`);
+    const startHour = 7;
+    const endHour = 19;
+    
+    // Calcular quantos minutos cobrir (7h às 19h = 12 horas = 720 minutos)
+    const totalMinutes = (endHour - startHour) * 60;
+    
+    // Gerar slots baseados no intervalo selecionado
+    for (let minutes = 0; minutes < totalMinutes; minutes += this.timeInterval) {
+      const currentHour = startHour + Math.floor(minutes / 60);
+      const currentMinutes = minutes % 60;
+      
+      // Parar se ultrapassar o horário final
+      if (currentHour >= endHour) break;
+      
+      const timeSlot = `${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')}`;
+      this.timeSlots.push(timeSlot);
     }
   }
 
@@ -958,13 +1070,34 @@ export class AgendamentosComponent implements OnInit {
 
   // Clique em slot de horário
   onTimeSlotClick(dayInfo: any, timeSlot: any): void {
+    // Se há agendamento, mostrar feedback de que horário está ocupado
     if (timeSlot.agendamento) {
-      // Se há agendamento, editar
-      this.editarAgendamento(timeSlot.agendamento);
-    } else {
-      // Se não há agendamento, criar novo
-      this.novoAgendamentoParaHorario(timeSlot.dateTime);
+      const horarioFormatado = timeSlot.dateTime.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      this.showFeedback(`Este horário já está ocupado (${horarioFormatado})`);
+      return; // Não abre modal
     }
+    
+    // Verificar se já existe agendamento no horário exato (dupla verificação)
+    if (this.hasAgendamentoAtDateTime(timeSlot.dateTime)) {
+      const horarioFormatado = timeSlot.dateTime.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      this.showFeedback(`Este horário já está ocupado (${horarioFormatado})`);
+      return;
+    }
+    
+    // Se não há agendamento, criar novo
+    this.novoAgendamentoParaHorario(timeSlot.dateTime);
   }
 
   // Criar novo agendamento para horário específico
