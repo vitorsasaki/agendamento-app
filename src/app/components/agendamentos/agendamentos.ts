@@ -1,7 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { ApiService } from '../../services/api.service';
 
 interface Agendamento {
   id?: number;
@@ -127,7 +127,7 @@ export class AgendamentosComponent implements OnInit {
     status: 'AGENDADO'
   };
 
-  constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private ngZone: NgZone) {}
+  constructor(private apiService: ApiService, private cdr: ChangeDetectorRef, private ngZone: NgZone) {}
 
   ngOnInit(): void {
     this.generateTimeSlots();
@@ -140,22 +140,15 @@ export class AgendamentosComponent implements OnInit {
     this.erro = '';
 
     try {
-      const token = localStorage.getItem('authToken');
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      });
-
       const params = new URLSearchParams({
         page: page.toString(),
         size: this.pageSize.toString(),
         sort: 'dataHora,desc'
       });
 
-      const response = await this.http.get<PageResponse<Agendamento>>(
-        `http://localhost:8080/api/agendamentos?${params.toString()}`,
-        { headers }
-      ).toPromise();
+      const response = await this.apiService.get<PageResponse<Agendamento>>(
+        `/agendamentos?${params.toString()}`
+      );
 
       if (response) {
         // Extrair dados de paginação
@@ -182,17 +175,10 @@ export class AgendamentosComponent implements OnInit {
   // Carregar todos os agendamentos para o calendário
   async carregarTodosAgendamentos(): Promise<void> {
     try {
-      const token = localStorage.getItem('authToken');
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      });
-
       // Carregar todos os agendamentos sem paginação para o calendário
-      const response = await this.http.get<PageResponse<Agendamento>>(
-        'http://localhost:8080/api/agendamentos?page=0&size=1000&sort=dataHora,desc',
-        { headers }
-      ).toPromise();
+      const response = await this.apiService.get<PageResponse<Agendamento>>(
+        '/agendamentos?page=0&size=1000&sort=dataHora,desc'
+      );
 
       if (response) {
         this.todosAgendamentos = response.content || [];
@@ -324,16 +310,9 @@ export class AgendamentosComponent implements OnInit {
     this.erro = '';
 
     try {
-      const token = localStorage.getItem('authToken');
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      });
-
-      const response = await this.http.get<PageResponse<Agendamento>>(
-        `http://localhost:8080/api/agendamentos/buscarPorNome?nome=${encodeURIComponent(termo)}`,
-        { headers }
-      ).toPromise();
+      const response = await this.apiService.get<PageResponse<Agendamento>>(
+        `/agendamentos/buscarPorNome?nome=${encodeURIComponent(termo)}`
+      );
 
       this.agendamentos = response?.content || [];
       // Atualizar calendário após buscar agendamentos
@@ -380,16 +359,9 @@ export class AgendamentosComponent implements OnInit {
     
     
     try {
-      const token = localStorage.getItem('authToken');
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      });
-
-      const response = await this.http.get<PageResponse<Paciente>>(
-        `http://localhost:8080/api/pacientes/search?nome=${encodeURIComponent(termo)}`,
-        { headers }
-      ).toPromise();
+      const response = await this.apiService.get<PageResponse<Paciente>>(
+        `/pacientes/search?nome=${encodeURIComponent(termo)}`
+      );
 
       this.pacientes = response?.content || [];
       this.mostrarListaPacientes = this.pacientes.length > 0;
@@ -472,16 +444,9 @@ export class AgendamentosComponent implements OnInit {
     this.cdr.detectChanges();        
     
     try {
-      const token = localStorage.getItem('authToken');
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      });
-
-      const response = await this.http.get<PageResponse<Profissional>>(
-        `http://localhost:8080/api/profissionais/search?nome=${encodeURIComponent(termo)}`,
-        { headers }
-      ).toPromise();
+      const response = await this.apiService.get<PageResponse<Profissional>>(
+        `/profissionais/search?nome=${encodeURIComponent(termo)}`
+      );
 
       this.profissionais = response?.content || [];
       this.mostrarListaProfissionais = this.profissionais.length > 0;      
@@ -641,12 +606,6 @@ export class AgendamentosComponent implements OnInit {
     this.erro = '';
 
     try {
-      const token = localStorage.getItem('authToken');
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      });
-
       // Formatar data para o backend
       const dataHoraFormatada = this.formatarDataParaBackend(this.formData.dataHora);
       console.log('DEBUG - Formatação de data/hora:');
@@ -660,18 +619,10 @@ export class AgendamentosComponent implements OnInit {
 
       if (this.agendamentoSelecionado?.id) {
         // Atualizar
-        await this.http.put(
-          `http://localhost:8080/api/agendamentos/${this.agendamentoSelecionado.id}`,
-          dadosParaEnvio,
-          { headers }
-        ).toPromise();
+        await this.apiService.put(`/agendamentos/${this.agendamentoSelecionado.id}`, dadosParaEnvio);
       } else {
         // Criar
-        await this.http.post(
-          'http://localhost:8080/api/agendamentos',
-          dadosParaEnvio,
-          { headers }
-        ).toPromise();
+        await this.apiService.post('/agendamentos', dadosParaEnvio);
       }
 
       this.fecharModal();
@@ -708,15 +659,7 @@ export class AgendamentosComponent implements OnInit {
     this.erro = '';
 
     try {
-      const token = localStorage.getItem('authToken');
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${token}`
-      });
-
-      await this.http.delete(
-        `http://localhost:8080/api/agendamentos/${id}`,
-        { headers }
-      ).toPromise();
+      await this.apiService.delete(`/agendamentos/${id}`);
 
       this.atualizarTodosDados();
     } catch (error: any) {

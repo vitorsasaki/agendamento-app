@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  # Frontend Angular
+  frontend:
+    build: .
+    container_name: agendamento-frontend
+    ports:
+      - "80:80"
+    restart: unless-stopped

@@ -26,6 +26,48 @@ For a complete list of available schematics (such as `components`, `directives`,
 ng generate --help
 ```
 
+## 📋 Configuração de Ambientes
+
+Este projeto possui diferentes configurações de ambiente para desenvolvimento e produção:
+
+### Ambientes Disponíveis
+
+| Comando | Frontend | Backend | Console Log | Descrição |
+|---------|----------|---------|-------------|-----------|
+| `ng serve` | **Local** (localhost:4200) | **Local** (localhost:8080) | 🟢 DESENVOLVIMENTO | Desenvolvimento completo local |
+| `ng serve --configuration=local-prod` | **Local** (localhost:4200) | **VPS** (agendamento.conect365.com) | 🟡 DESENVOLVIMENTO + VPS | Frontend local + Backend VPS |
+| `ng build` | **Build para VPS** | **VPS** (agendamento.conect365.com) | 🔴 PRODUÇÃO | Build para deploy |
+
+### Arquivos de Environment
+
+- **`src/environments/environment.ts`** - Desenvolvimento (localhost:8080)
+- **`src/environments/environment.prod.ts`** - Produção (agendamento.conect365.com)  
+- **`src/environments/environment.local-prod.ts`** - Híbrido (local + VPS)
+
+### Como Verificar o Ambiente
+
+Abra o **Console do Navegador** (F12) e procure por:
+```
+🌍 Ambiente atual: [DESENVOLVIMENTO|PRODUÇÃO]
+🔗 API URL: [URL_DA_API]
+```
+
+### Comandos Úteis
+
+```bash
+# Desenvolvimento local completo
+ng serve
+
+# Frontend local + Backend VPS (útil para testar com dados reais)
+ng serve --configuration=local-prod
+
+# Build para desenvolvimento
+ng build --configuration=development
+
+# Build para produção (deploy)
+ng build --configuration=production
+```
+
 ## Building
 
 To build the project run:

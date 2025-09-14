@@ -1,7 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { ApiService } from '../../services/api.service';
 
 interface Especialidade {
   id: number;
@@ -52,7 +52,7 @@ export class ProfissionaisComponent implements OnInit {
     crm: ''
   };
 
-  constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private ngZone: NgZone) {}
+  constructor(private apiService: ApiService, private cdr: ChangeDetectorRef, private ngZone: NgZone) {}
 
   ngOnInit(): void {
     this.carregarProfissionais();
@@ -65,16 +65,7 @@ export class ProfissionaisComponent implements OnInit {
     this.erro = '';
 
     try {
-      const token = localStorage.getItem('authToken');
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      });
-
-      const response = await this.http.get<PageResponse<Profissional>>(
-        'http://localhost:8080/api/profissionais',
-        { headers }
-      ).toPromise();
+      const response = await this.apiService.get<PageResponse<Profissional>>('/profissionais');
 
       // Extrair o array de profissionais do objeto Page
       this.profissionais = response?.content || [];
@@ -95,17 +86,8 @@ export class ProfissionaisComponent implements OnInit {
     console.log('Iniciando carregamento de especialidades...');
 
     try {
-      const token = localStorage.getItem('authToken');
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      });
-
-      console.log('Fazendo chamada para: http://localhost:8080/api/especialidade');
-      const response = await this.http.get<PageResponse<Especialidade>>(
-        'http://localhost:8080/api/especialidade',
-        { headers }
-      ).toPromise();
+      console.log('Fazendo chamada para: /especialidade');
+      const response = await this.apiService.get<PageResponse<Especialidade>>('/especialidade');
 
       // Usar NgZone para garantir que o Angular detecte as mudanças
       this.ngZone.run(() => {
@@ -169,26 +151,12 @@ export class ProfissionaisComponent implements OnInit {
     this.erro = '';
 
     try {
-      const token = localStorage.getItem('authToken');
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      });
-
       if (this.profissionalSelecionado?.id) {
         // Atualizar
-        await this.http.put(
-          `http://localhost:8080/api/profissionais/${this.profissionalSelecionado.id}`,
-          this.formData,
-          { headers }
-        ).toPromise();
+        await this.apiService.put(`/profissionais/${this.profissionalSelecionado.id}`, this.formData);
       } else {
         // Criar
-        await this.http.post(
-          'http://localhost:8080/api/profissionais',
-          this.formData,
-          { headers }
-        ).toPromise();
+        await this.apiService.post('/profissionais', this.formData);
       }
 
       this.fecharModal();
@@ -230,15 +198,7 @@ export class ProfissionaisComponent implements OnInit {
     this.erro = '';
 
     try {
-      const token = localStorage.getItem('authToken');
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${token}`
-      });
-
-      await this.http.delete(
-        `http://localhost:8080/api/profissionais/${id}`,
-        { headers }
-      ).toPromise();
+      await this.apiService.delete(`/profissionais/${id}`);
 
       this.carregarProfissionais();
     } catch (error: any) {

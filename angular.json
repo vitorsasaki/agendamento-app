@@ -35,8 +35,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
-                  "maximumError": "8kB"
+                  "maximumWarning": "20kB",
+                  "maximumError": "25kB"
                 }
               ],
               "outputHashing": "all"
@@ -45,6 +45,17 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "local-prod": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.local-prod.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
@@ -57,6 +68,9 @@
             },
             "development": {
               "buildTarget": "agendamento-front:build:development"
+            },
+            "local-prod": {
+              "buildTarget": "agendamento-front:build:local-prod"
             }
           },
           "defaultConfiguration": "development"

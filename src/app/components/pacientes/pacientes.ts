@@ -1,7 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { ApiService } from '../../services/api.service';
 
 interface Paciente {
   id?: number;
@@ -54,7 +54,7 @@ export class PacientesComponent implements OnInit {
     telefone: ''
   };
 
-  constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private ngZone: NgZone) {}
+  constructor(private apiService: ApiService, private cdr: ChangeDetectorRef, private ngZone: NgZone) {}
 
   ngOnInit(): void {
     this.carregarPacientes();
@@ -66,22 +66,15 @@ export class PacientesComponent implements OnInit {
     this.erro = '';
 
     try {
-      const token = localStorage.getItem('authToken');
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      });
-
       const params = new URLSearchParams({
         page: page.toString(),
         size: this.pageSize.toString(),
         sort: 'nome,asc'
       });
 
-      const response = await this.http.get<PageResponse<Paciente>>(
-        `http://localhost:8080/api/pacientes?${params.toString()}`,
-        { headers }
-      ).toPromise();
+      const response = await this.apiService.get<PageResponse<Paciente>>(
+        `/pacientes?${params.toString()}`
+      );
 
       if (response) {
         // Extrair dados de paginação
@@ -172,16 +165,9 @@ export class PacientesComponent implements OnInit {
     this.erro = '';
 
     try {
-      const token = localStorage.getItem('authToken');
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      });
-
-      const response = await this.http.get<PageResponse<Paciente>>(
-        `http://localhost:8080/api/pacientes/search?nome=${encodeURIComponent(nome)}`,
-        { headers }
-      ).toPromise();
+      const response = await this.apiService.get<PageResponse<Paciente>>(
+        `/pacientes/search?nome=${encodeURIComponent(nome)}`
+      );
 
       this.pacientes = response?.content || [];
     } catch (error: any) {
@@ -258,12 +244,6 @@ export class PacientesComponent implements OnInit {
     this.erro = '';
 
     try {
-      const token = localStorage.getItem('authToken');
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      });
-
       // Limpar formatação antes de enviar
       const dadosParaEnvio = {
         ...this.formData,
@@ -273,18 +253,10 @@ export class PacientesComponent implements OnInit {
 
       if (this.pacienteSelecionado?.id) {
         // Atualizar
-        await this.http.put(
-          `http://localhost:8080/api/pacientes/${this.pacienteSelecionado.id}`,
-          dadosParaEnvio,
-          { headers }
-        ).toPromise();
+        await this.apiService.put(`/pacientes/${this.pacienteSelecionado.id}`, dadosParaEnvio);
       } else {
         // Criar
-        await this.http.post(
-          'http://localhost:8080/api/pacientes',
-          dadosParaEnvio,
-          { headers }
-        ).toPromise();
+        await this.apiService.post('/pacientes', dadosParaEnvio);
       }
 
       this.fecharModal();
@@ -331,15 +303,7 @@ export class PacientesComponent implements OnInit {
     this.erro = '';
 
     try {
-      const token = localStorage.getItem('authToken');
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${token}`
-      });
-
-      await this.http.delete(
-        `http://localhost:8080/api/pacientes/${id}`,
-        { headers }
-      ).toPromise();
+      await this.apiService.delete(`/pacientes/${id}`);
 
       this.carregarPacientes();
     } catch (error: any) {

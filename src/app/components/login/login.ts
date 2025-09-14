@@ -1,8 +1,8 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { ApiService } from '../../services/api.service';
 
 interface LoginData {
   email: string;
@@ -39,7 +39,7 @@ export class LoginComponent {
   passwordError = '';
   loginError = '';
   
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private apiService: ApiService, private router: Router) {}
   
   // Validação de email
   validateEmail(email: string): boolean {
@@ -99,17 +99,8 @@ export class LoginComponent {
     this.isLoading = true;
     this.clearErrors();
     
-                  try {
-      const response = await this.http.post<LoginResponse>(
-         'http://localhost:8080/api/auth/login',
-         this.loginData,
-                 {
-           headers: new HttpHeaders({
-             'Content-Type': 'application/json',
-             'Accept': 'application/json'
-           })
-         }
-      ).toPromise();
+    try {
+      const response = await this.apiService.post<LoginResponse>('/auth/login', this.loginData);
       
       if (response?.token) {
         // Login bem-sucedido
@@ -131,11 +122,8 @@ export class LoginComponent {
         this.loginError = response?.message || 'Erro no login. Tente novamente.';
       }
       
-         } catch (error: any) {
-       console.error('Erro no login:', error);
-       console.error('Status do erro:', error.status);
-       console.error('Mensagem do erro:', error.message);
-       console.error('Response do erro:', error.error);
+    } catch (error: any) {
+      console.error('Erro no login:', error);
       
       if (error.status === 401) {
         this.loginError = 'E-mail ou senha incorretos';
@@ -156,4 +144,4 @@ export class LoginComponent {
     event.preventDefault();
     alert('Funcionalidade de recuperação de senha será implementada em breve!');
   }
-} 
+}
