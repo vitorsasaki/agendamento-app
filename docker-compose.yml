@@ -1,10 +1,18 @@
-version: '3.8'
-
 services:
-  # Frontend Angular
   frontend:
     build: .
     container_name: agendamento-frontend
-    ports:
-      - "80:80"
     restart: unless-stopped
+    expose:
+      - "80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.agendamento-frontend.rule=Host(`agendamento-app.conect365.com`)"
+      - "traefik.http.routers.agendamento-frontend.entrypoints=websecure"
+      - "traefik.http.routers.agendamento-frontend.tls.certresolver=leresolver"
+      - "traefik.http.services.agendamento-frontend.loadbalancer.server.port=80"
+
+networks:
+  default:
+    name: infrastructure_default
+    external: true
